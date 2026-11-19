@@ -15,6 +15,7 @@ body{display:flex;flex-direction:column}.top{height:76px;flex:none;background:va
 .total-label{font-size:14px;text-transform:uppercase;font-weight:800;color:var(--brown);letter-spacing:1px}.total{font-size:clamp(32px,5vw,48px);font-weight:900;line-height:1.05}
 .place{height:72px;min-width:48%;border:0;border-radius:16px;background:var(--green);color:white;font-size:clamp(20px,3vw,30px);font-weight:900;box-shadow:0 5px 0 #24482b;touch-action:manipulation}.place:disabled{opacity:.45;box-shadow:none}
 .notice{position:fixed;inset:0;background:#fff3df;display:none;z-index:5;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px}.notice.show{display:flex}.notice h2{font-size:clamp(32px,6vw,58px);margin:0 0 10px;color:var(--brown)}.notice .big{font-size:clamp(48px,10vw,90px);font-weight:900;margin:12px}.notice button{margin-top:20px;border:0;border-radius:15px;padding:18px 35px;background:var(--green);color:#fff;font-size:24px;font-weight:800}
+.setup-choice{position:fixed;inset:0;z-index:20;background:var(--cream);display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;padding:24px;text-align:center}.setup-choice.show{display:flex}.setup-choice h2{font-size:clamp(30px,6vw,48px);color:var(--brown);margin:0}.setup-choice button{width:min(420px,90vw);padding:22px;border:0;border-radius:18px;background:var(--caramel);color:white;font-size:clamp(24px,4vw,34px);font-weight:900;box-shadow:0 5px 0 var(--brown)}
 .dashboard{display:none;flex:1;min-height:0;overflow:auto;padding:20px}.dashboard h2{margin:0 0 12px;color:var(--brown)}.dashbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.orders{display:grid;gap:10px}.order{background:var(--paper);border:2px solid #d2a16e;border-radius:14px;padding:14px;display:flex;justify-content:space-between;gap:12px;align-items:center}.order strong{font-size:20px}.order small{display:block;color:#76533d;margin-top:4px}.order button{border:0;border-radius:10px;padding:12px 15px;background:var(--green);color:white;font-weight:800}.empty{font-size:20px;color:#795a43;padding:30px;text-align:center;background:var(--paper);border-radius:14px}
 body.dash .top{height:68px}body.dash .products,body.dash .bottom{display:none}body.dash .dashboard{display:block}
 @media(max-height:650px){.top{height:58px}.products{padding:7px;gap:7px}.product{padding:6px}.product img{height:22vh}.bottom{height:88px}.place{height:60px}}
@@ -28,13 +29,14 @@ body.dash .top{height:68px}body.dash .products,body.dash .bottom{display:none}bo
 </main>
 <footer class="bottom" id="checkout"><div><div class="total-label">Your total</div><div class="total" id="total">$0.00</div></div><button class="place" id="place" disabled>PLACE ORDER</button></footer>
 <section class="notice" id="thanks"><h2>Order placed! 🎉</h2><div>YOUR TOTAL</div><div class="big" id="thanksTotal">$0.00</div><p>Thank you for shopping Crazy Caramels!</p><button id="newOrder">Start New Order</button></section>
+<section class="setup-choice" id="setupChoice"><h2>🍬 Welcome to Crazy Caramels!</h2><p>Choose how this device will be used.</p><button id="chooseIpad">📱 iPad — Take Orders</button><button id="chooseComputer">💻 Computer — View Orders</button></section>
 <section class="dashboard" id="dashboard"><div class="dashbar"><div><h2>Live Orders</h2><div id="connection">Connecting…</div></div><button id="refresh" class="step" style="width:auto;height:auto;padding:12px;font-size:16px">Refresh</button></div><div id="orders" class="orders"><div class="empty">Waiting for the first order…</div></div></section>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* SETUP: paste your Supabase Project URL and anon key here after creating the database. */
 const SUPABASE_URL="https://fsijsjvrrqgkhldpmhag.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable__suDjPMt7WqKlTkWjX-lew_OLDPb0mU";
-const configured=SUPABASE_URL.startsWith("https://") && SUPABASE_ANON_KEY.startsWith("ey");
+const configured=SUPABASE_URL.startsWith("https://") && (SUPABASE_ANON_KEY.startsWith("sb_publishable_") || SUPABASE_ANON_KEY.startsWith("ey"));
 const db=configured?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
 const prices={single:1,bag:6,mint:1},names={single:"Single Caramel",bag:"Gift Bag (5)",mint:"Peppermint Caramel"};
 let qty={single:0,bag:0,mint:0};
@@ -63,5 +65,15 @@ function renderOrders(rows){const el=document.getElementById("orders");if(!rows.
  el.querySelectorAll("[data-done]").forEach(b=>b.addEventListener("click",async()=>{await db.from("orders").update({status:"done"}).eq("id",b.dataset.done);loadOrders()}));
 }
 document.getElementById("refresh").addEventListener("click",loadOrders);
-if(new URLSearchParams(location.search).get("view")==="dashboard"){document.body.classList.add("dash");document.getElementById("subtitle").textContent="Order dashboard";loadOrders();if(db){db.channel("orders-live").on("postgres_changes",{event:"*",schema:"public",table:"orders"},loadOrders).subscribe();setInterval(loadOrders,5000)}}else{paint()}
+function startDashboard(){document.body.classList.add("dash");document.getElementById("subtitle").textContent="Order dashboard";loadOrders();if(db){db.channel("orders-live").on("postgres_changes",{event:"*",schema:"public",table:"orders"},loadOrders).subscribe();setInterval(loadOrders,5000)}}
+function startShop(){document.body.classList.remove("dash");document.getElementById("subtitle").textContent="Choose your treats!";paint()}
+const savedMode=localStorage.getItem("crazyCaramelsDeviceMode");
+const setupChoice=document.getElementById("setupChoice");
+function applyMode(mode){localStorage.setItem("crazyCaramelsDeviceMode",mode);setupChoice.classList.remove("show");if(mode==="computer")startDashboard();else startShop()}
+document.getElementById("chooseIpad").addEventListener("click",()=>applyMode("ipad"));
+document.getElementById("chooseComputer").addEventListener("click",()=>applyMode("computer"));
+if(new URLSearchParams(location.search).get("setup")==="1"){localStorage.removeItem("crazyCaramelsDeviceMode");setupChoice.classList.add("show")}
+else if(savedMode==="computer"){startDashboard()}
+else if(savedMode==="ipad"){startShop()}
+else{setupChoice.classList.add("show")}
 </script></body></html>
