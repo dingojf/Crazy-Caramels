@@ -24,7 +24,7 @@ create policy "Customers can submit reviews"
 drop policy if exists "Signed-in admins can read reviews" on public.reviews;
 create policy "Signed-in admins can read reviews"
   on public.reviews for select to authenticated
-  using (auth.uid() is not null);
+  using (auth.uid() = '397619e5-98dc-46aa-bc5f-c7fabdb68dcb'::uuid);
 
 -- This view intentionally contains no email addresses.
 create or replace view public.public_reviews as
