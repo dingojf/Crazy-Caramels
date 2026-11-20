@@ -53,7 +53,7 @@ document.getElementById("place").addEventListener("click",async()=>{
  const {error}=await db.from("orders").insert({items,total:totalPrice,status:"new"});
  btn.textContent="PLACE ORDER";if(error){alert("Couldn't send the order. Please try again.");paint();return}
  document.getElementById("thanksTotal").textContent=money(totalPrice);document.getElementById("thanks").classList.add("show");
- setTimeout(()=>{qty={single:0,bag:0,mint:0};donation=0;document.getElementById("donationAmount").value="0";paint();document.getElementById("thanks").classList.remove("show")},60000);
+ setTimeout(()=>{qty={single:0,bag:0,mint:0};donation=0;document.getElementById("donationAmount").value="0";paint();document.getElementById("thanks").classList.remove("show")},5000);
 });
 document.getElementById("newOrder").addEventListener("click",()=>{qty={single:0,bag:0,mint:0};donation=0;document.getElementById("donationAmount").value="0";paint();document.getElementById("thanks").classList.remove("show")});
 async function loadOrders(){
