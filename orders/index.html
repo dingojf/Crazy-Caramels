@@ -37,7 +37,7 @@ body.dash .top{height:68px}body.dash .products,body.dash .bottom{display:none}bo
 const SUPABASE_URL="https://fsijsjvrrqgkhldpmhag.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable__suDjPMt7WqKlTkWjX-lew_OLDPb0mU";
 const configured=SUPABASE_URL.startsWith("https://") && (SUPABASE_ANON_KEY.startsWith("sb_publishable_") || SUPABASE_ANON_KEY.startsWith("ey"));
-const db=configured?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+const db=configured?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{global:{fetch:(url,options={})=>fetch(url,{...options,cache:"no-store"})}}):null;
 const prices={single:1,bag:6,mint:1},names={single:"Single Caramel",bag:"Gift Bag (5)",mint:"Peppermint Caramel"};
 let qty={single:0,bag:0,mint:0};
 const money=n=>"$"+n.toFixed(2);
@@ -56,10 +56,10 @@ document.getElementById("place").addEventListener("click",async()=>{
 document.getElementById("newOrder").addEventListener("click",()=>{qty={single:0,bag:0,mint:0};paint();document.getElementById("thanks").classList.remove("show")});
 async function loadOrders(){
  if(!db){document.getElementById("connection").textContent="Database setup needed";document.getElementById("orders").innerHTML='<div class="empty">Connect the database to start receiving orders.</div>';return}
- document.getElementById("connection").textContent="Connected · updates automatically";
  const {data,error}=await db.from("orders").select("*").order("created_at",{ascending:false}).limit(100);
- if(error){document.getElementById("connection").textContent="Could not load orders";return}
+ if(error){document.getElementById("connection").textContent="Could not load orders: "+error.message;return}
  renderOrders(data||[]);
+ document.getElementById("connection").textContent="Auto-checking · last checked "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"})+" · "+(data||[]).length+" orders";
 }
 function renderOrders(rows){const el=document.getElementById("orders");if(!rows.length){el.innerHTML='<div class="empty">Waiting for the first order…</div>';return}
  el.innerHTML=rows.map(o=>{const lines=Object.entries(o.items||{}).filter(([,n])=>n>0).map(([k,n])=>n+" × "+names[k]).join(" · ");const date=new Date(o.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});return '<article class="order"><div><strong>'+money(Number(o.total))+'</strong><small>'+lines+'</small><small>'+date+' · '+o.status+'</small></div><div class="order-actions"><button data-done="'+o.id+'" '+(o.status==="done"?"disabled":"")+'>'+(o.status==="done"?"Completed":"Mark completed")+'</button><button class="delete" data-delete="'+o.id+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg>Delete</button></div></article>'}).join("");
@@ -67,7 +67,7 @@ function renderOrders(rows){const el=document.getElementById("orders");if(!rows.
  el.querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("Delete this order permanently?"))return;b.disabled=true;const {error}=await db.from("orders").delete().eq("id",b.dataset.delete);if(error){alert("Could not delete this order. Check the database permissions.");b.disabled=false;return}loadOrders()}));
 }
 document.getElementById("refresh").addEventListener("click",loadOrders);
-function startDashboard(){document.body.classList.add("dash");document.getElementById("subtitle").textContent="Order dashboard";if(!db){loadOrders();return}let loading=false;const refreshOrders=async()=>{if(loading)return;loading=true;try{await loadOrders()}catch(e){document.getElementById("connection").textContent="Connection problem — retrying…"}finally{loading=false}};refreshOrders();setInterval(refreshOrders,1500);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshOrders()});window.addEventListener("focus",refreshOrders);db.channel("orders-live-"+Date.now()).on("postgres_changes",{event:"*",schema:"public",table:"orders"},refreshOrders).subscribe((status)=>{if(status==="SUBSCRIBED")document.getElementById("connection").textContent="Live · checking for new orders";else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")document.getElementById("connection").textContent="Auto-checking · live connection unavailable"});}
+function startDashboard(){document.body.classList.add("dash");document.getElementById("subtitle").textContent="Order dashboard";if(!db){loadOrders();return}let loading=false;const refreshOrders=async()=>{if(loading)return;loading=true;try{await loadOrders()}catch(e){document.getElementById("connection").textContent="Connection problem — retrying…"}finally{loading=false}};refreshOrders();setInterval(refreshOrders,2000);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshOrders()});window.addEventListener("focus",refreshOrders);db.channel("orders-live-"+Date.now()).on("postgres_changes",{event:"*",schema:"public",table:"orders"},refreshOrders).subscribe((status)=>{if(status==="SUBSCRIBED")document.getElementById("connection").textContent="Live · checking for new orders";else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")document.getElementById("connection").textContent="Auto-checking · live connection unavailable"});}
 function startShop(){document.body.classList.remove("dash");document.getElementById("subtitle").textContent="Choose your treats!";paint()}
 const savedMode=localStorage.getItem("crazyCaramelsDeviceMode");
 const setupChoice=document.getElementById("setupChoice");
