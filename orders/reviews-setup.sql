@@ -4,13 +4,15 @@ create table if not exists public.reviews (
   rating smallint not null check (rating between 1 and 5),
   review text not null check (char_length(trim(review)) between 3 and 1000),
   email text not null check (char_length(email) between 5 and 254),
+  approved boolean not null default false,
   created_at timestamptz not null default now()
 );
 
+alter table public.reviews add column if not exists approved boolean not null default false;
 alter table public.reviews enable row level security;
 revoke all on public.reviews from anon, authenticated;
 grant insert on public.reviews to anon;
-grant select on public.reviews to authenticated;
+grant select, update on public.reviews to authenticated;
 
 drop policy if exists "Customers can submit reviews" on public.reviews;
 create policy "Customers can submit reviews"
@@ -26,10 +28,17 @@ create policy "Signed-in admins can read reviews"
   on public.reviews for select to authenticated
   using (auth.uid() = '397619e5-98dc-46aa-bc5f-c7fabdb68dcb'::uuid);
 
--- This view intentionally contains no email addresses.
+drop policy if exists "Signed-in admins can approve reviews" on public.reviews;
+create policy "Signed-in admins can approve reviews"
+  on public.reviews for update to authenticated
+  using (auth.uid() = '397619e5-98dc-46aa-bc5f-c7fabdb68dcb'::uuid)
+  with check (auth.uid() = '397619e5-98dc-46aa-bc5f-c7fabdb68dcb'::uuid);
+
+-- Only approved reviews are visible publicly; customer emails are never included.
 create or replace view public.public_reviews as
   select id, rating, review, created_at
   from public.reviews
+  where approved = true
   order by created_at desc;
 
 grant select on public.public_reviews to anon, authenticated;
