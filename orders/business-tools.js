@@ -21,7 +21,7 @@
     .biz-warning{color:#a12620;font-weight:800;margin:10px 0}
     .biz-tools{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
     .biz-tools button{border:0;border-radius:9px;padding:10px 14px;background:#8b6547;color:white;font-weight:800;cursor:pointer}
-    @media(max-width:700px){.biz-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.biz-stock{grid-template-columns:1fr}}
+    #resetAllOrders{display:block;width:100%;margin:22px 0 8px;padding:20px;background:#b42318;color:#fff;border:0;border-radius:12px;font-size:25px;font-weight:900;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 0 #78150f}\n    #resetAllOrders:active{transform:translateY(2px);box-shadow:0 2px 0 #78150f}\n    #resetAllOrders:disabled{opacity:.65;cursor:wait}\n    @media(max-width:700px){.biz-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.biz-stock{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
   const dash=document.getElementById("dashboard");
@@ -39,7 +39,7 @@
     <h2 style="margin-top:20px">Inventory Remaining</h2>
     <div class="biz-stock" id="bizStock"></div>
     <div class="biz-warning" id="bizWarnings" role="status"></div>
-    <div class="biz-tools"><small id="bizUpdated">Waiting for inventory…</small><div><button id="bizRefresh" type="button">Refresh Overview</button> <button id="resetAllOrders" type="button" style="background:#a12620">Reset All Orders</button></div></div>
+    <div class="biz-tools"><small id="bizUpdated">Waiting for inventory…</small><div><button id="bizRefresh" type="button">Refresh Overview</button></div></div>
   `;
   const adminReviews=document.getElementById("adminReviewSection");
   dash.insertBefore(panel,adminReviews||null);
@@ -115,6 +115,10 @@
     finally{fetching=false;}
   }
   document.getElementById("bizRefresh").addEventListener("click",refresh);
+  const restartButton=document.getElementById("resetAllOrders");
+  restartButton.textContent="RESTART";
+  restartButton.setAttribute("aria-label","Restart and reset all orders");
+  dash.appendChild(restartButton);
   document.getElementById("resetAllOrders").addEventListener("click",async()=>{
     if(!db){alert("The orders database is not connected.");return;}
     if(!confirm("RESET ALL ORDERS? This permanently deletes every order and clears the sales totals and inventory counts. Customer reviews will NOT be deleted."))return;
@@ -130,7 +134,7 @@
       alert("All orders were reset. Your starting inventory is back to its original amounts.");
     }catch(error){
       alert("Could not reset orders. Check the database permissions and try again.");
-    }finally{button.disabled=false;button.textContent="Reset All Orders";}
+    }finally{button.disabled=false;button.textContent="RESTART";}
   });
   document.getElementById("bizRefresh").addEventListener("click",()=>{});
   if(document.body.classList.contains("dash"))refresh();setInterval(()=>{if(document.body.classList.contains("dash"))refresh();},5000);
