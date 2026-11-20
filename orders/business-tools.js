@@ -39,7 +39,7 @@
     <h2 style="margin-top:20px">Inventory Remaining</h2>
     <div class="biz-stock" id="bizStock"></div>
     <div class="biz-warning" id="bizWarnings" role="status"></div>
-    <div class="biz-tools"><small id="bizUpdated">Waiting for inventory…</small><button id="bizRefresh" type="button">Refresh Overview</button></div>
+    <div class="biz-tools"><small id="bizUpdated">Waiting for inventory…</small><div><button id="bizRefresh" type="button">Refresh Overview</button> <button id="resetAllOrders" type="button" style="background:#a12620">Reset All Orders</button></div></div>
   `;
   const adminReviews=document.getElementById("adminReviewSection");
   dash.insertBefore(panel,adminReviews||null);
@@ -115,6 +115,23 @@
     finally{fetching=false;}
   }
   document.getElementById("bizRefresh").addEventListener("click",refresh);
+  document.getElementById("resetAllOrders").addEventListener("click",async()=>{
+    if(!db){alert("The orders database is not connected.");return;}
+    if(!confirm("RESET ALL ORDERS? This permanently deletes every order and clears the sales totals and inventory counts. Customer reviews will NOT be deleted."))return;
+    const typed=prompt('To confirm, type RESET. This cannot be undone.');
+    if(typed!=="RESET"){if(typed!==null)alert("Reset cancelled. Type RESET exactly to continue.");return;}
+    const button=document.getElementById("resetAllOrders");
+    button.disabled=true;button.textContent="Resetting…";
+    try{
+      const {error}=await db.from("orders").delete().not("id","is",null);
+      if(error)throw error;
+      knownOrderIds=new Set();
+      await Promise.all([refresh(),loadOrders()]);
+      alert("All orders were reset. Your starting inventory is back to its original amounts.");
+    }catch(error){
+      alert("Could not reset orders. Check the database permissions and try again.");
+    }finally{button.disabled=false;button.textContent="Reset All Orders";}
+  });
   document.getElementById("bizRefresh").addEventListener("click",()=>{});
   if(document.body.classList.contains("dash"))refresh();setInterval(()=>{if(document.body.classList.contains("dash"))refresh();},5000);
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&document.body.classList.contains("dash"))refresh();});
