@@ -116,7 +116,7 @@
   }
   document.getElementById("bizRefresh").addEventListener("click",refresh);
   document.getElementById("bizRefresh").addEventListener("click",()=>{});
-  if(document.body.classList.contains("dash")){refresh();setInterval(()=>{if(document.body.classList.contains("dash"))refresh();},5000);}
+  if(document.body.classList.contains("dash"))refresh();setInterval(()=>{if(document.body.classList.contains("dash"))refresh();},5000);
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&document.body.classList.contains("dash"))refresh();});
 
   // Check stock again at checkout so customers cannot submit more than the remaining count.
