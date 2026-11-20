@@ -1,6 +1,5 @@
 (() => {
   // Customer ordering-page inventory. Kept separate from the dashboard script.
-  if (document.getElementById("dashboard")) return;
   const startingStock = { single: 90, bag: 24, mint: 30 };
   const names = { single: "regular singles", bag: "gift bags", mint: "peppermint caramels" };
   let busy = false;
