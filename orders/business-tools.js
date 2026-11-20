@@ -56,13 +56,17 @@
   function ding(){
     if(!soundOn)return;unlockAudio();if(!audio||audio.state!=="running")return;
     try{
-      const osc=audio.createOscillator(),gain=audio.createGain();
-      osc.type="sine";osc.frequency.setValueAtTime(880,audio.currentTime);
-      osc.frequency.setValueAtTime(1175,audio.currentTime+.12);
-      gain.gain.setValueAtTime(.0001,audio.currentTime);
-      gain.gain.exponentialRampToValueAtTime(.18,audio.currentTime+.025);
-      gain.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.42);
-      osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+.44);
+      // A louder three-note alert so a new order is easier to hear.
+      [784,988,1319].forEach((frequency,index)=>{
+        const start=audio.currentTime+index*.17;
+        const osc=audio.createOscillator(),gain=audio.createGain();
+        osc.type="sine";osc.frequency.setValueAtTime(frequency,start);
+        gain.gain.setValueAtTime(.0001,start);
+        gain.gain.exponentialRampToValueAtTime(.32,start+.025);
+        gain.gain.exponentialRampToValueAtTime(.0001,start+.34);
+        osc.connect(gain);gain.connect(audio.destination);
+        osc.start(start);osc.stop(start+.36);
+      });
     }catch(e){}
   }
   soundButton.addEventListener("click",()=>{soundOn=!soundOn;localStorage.setItem("ccOrderSound",soundOn?"on":"off");updateSoundButton();if(soundOn){unlockAudio();ding();}});
@@ -84,6 +88,41 @@
     }).join("");
     const warnings=Object.keys(left).filter(k=>left[k]<=lowStock[k]).map(k=>left[k]===0?productNames[k]+" are sold out":productNames[k]+" are running low");
     document.getElementById("bizWarnings").textContent=warnings.length?"Stock alert: "+warnings.join(" · "):"Stock levels look good.";
+  }
+  async function refreshShopStock(){
+    if(!db||fetching)return;
+    try{
+      const {data,error}=await db.from("orders").select("items").limit(5000);
+      if(error)throw error;
+      const left=remaining(data||[]);
+      Object.keys(initialStock).forEach(k=>{
+        const addButton=document.querySelector('.product [data-change="'+k+'"][data-delta="1"]');
+        if(!addButton)return;
+        const card=addButton.closest(".product");
+        if(!card)return;
+        let label=card.querySelector(".stock-status");
+        if(!label){
+          label=document.createElement("div");
+          label.className="stock-status";
+          label.style.cssText="font-size:14px;font-weight:900;text-align:center;min-height:18px;color:#6b351b;margin-top:4px";
+          const controls=card.querySelector(".controls");
+          if(controls)card.insertBefore(label,controls);
+        }
+        const soldOut=left[k]===0;
+        addButton.disabled=soldOut;
+        addButton.style.opacity=soldOut?".35":"1";
+        addButton.style.cursor=soldOut?"not-allowed":"pointer";
+        if(typeof qty!=="undefined"&&qty[k]>left[k]){
+          qty[k]=left[k];
+          const quantity=document.getElementById("q-"+k);
+          if(quantity)quantity.textContent=String(qty[k]);
+          if(typeof paint==="function")paint();
+        }
+        label.textContent=soldOut?"SOLD OUT":left[k]<=lowStock[k]?"Only "+left[k]+" left":"In stock";
+        label.style.color=soldOut?"#a12620":left[k]<=lowStock[k]?"#9a5b13":"#3f7148";
+        label.setAttribute("role","status");
+      });
+    }catch(e){}
   }
   async function refresh(){
     if(fetching||!db)return;fetching=true;
@@ -136,8 +175,17 @@
     }finally{button.disabled=false;button.textContent="RESTART";}
   });
   document.getElementById("bizRefresh").addEventListener("click",()=>{});
-  if(document.body.classList.contains("dash"))refresh();setInterval(()=>{if(document.body.classList.contains("dash"))refresh();},5000);
-  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&document.body.classList.contains("dash"))refresh();});
+  if(document.body.classList.contains("dash"))refresh();else refreshShopStock();
+  setInterval(()=>{
+    if(document.body.classList.contains("dash"))refresh();
+    else refreshShopStock();
+  },5000);
+  document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState==="visible"){
+      if(document.body.classList.contains("dash"))refresh();
+      else refreshShopStock();
+    }
+  });
 
   // Check stock again at checkout so customers cannot submit more than the remaining count.
   let checkingOrder=false,passThrough=false;
