@@ -55,11 +55,18 @@ document.getElementById("place").addEventListener("click",async()=>{
 });
 document.getElementById("newOrder").addEventListener("click",()=>{qty={single:0,bag:0,mint:0};paint();document.getElementById("thanks").classList.remove("show")});
 async function loadOrders(){
- if(!db){document.getElementById("connection").textContent="Database setup needed";document.getElementById("orders").innerHTML='<div class="empty">Connect the database to start receiving orders.</div>';return}
- const {data,error}=await db.from("orders").select("*").order("created_at",{ascending:false}).limit(100);
- if(error){document.getElementById("connection").textContent="Could not load orders: "+error.message;return}
- renderOrders(data||[]);
- document.getElementById("connection").textContent="Auto-checking · last checked "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"})+" · "+(data||[]).length+" orders";
+ const status=document.getElementById("connection");
+ if(!db){status.textContent="Database setup needed";document.getElementById("orders").innerHTML='<div class="empty">Connect the database to start receiving orders.</div>';return}
+ status.textContent="Loading orders…";
+ try{
+  const request=db.from("orders").select("*").order("created_at",{ascending:false}).limit(100);
+  const result=await Promise.race([request,new Promise((_,reject)=>setTimeout(()=>reject(new Error("Database request timed out after 8 seconds")),8000))]);
+  if(result.error)throw result.error;
+  renderOrders(result.data||[]);
+  status.textContent="Auto-checking · last checked "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"})+" · "+(result.data||[]).length+" orders";
+ }catch(error){
+  status.textContent="Couldn't load orders: "+(error.message||"Connection problem")+" · retrying";
+ }
 }
 function renderOrders(rows){const el=document.getElementById("orders");if(!rows.length){el.innerHTML='<div class="empty">Waiting for the first order…</div>';return}
  el.innerHTML=rows.map(o=>{const lines=Object.entries(o.items||{}).filter(([,n])=>n>0).map(([k,n])=>n+" × "+names[k]).join(" · ");const date=new Date(o.created_at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});return '<article class="order"><div><strong>'+money(Number(o.total))+'</strong><small>'+lines+'</small><small>'+date+' · '+o.status+'</small></div><div class="order-actions"><button data-done="'+o.id+'" '+(o.status==="done"?"disabled":"")+'>'+(o.status==="done"?"Completed":"Mark completed")+'</button><button class="delete" data-delete="'+o.id+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg>Delete</button></div></article>'}).join("");
