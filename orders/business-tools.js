@@ -115,11 +115,13 @@
     finally{fetching=false;}
   }
   document.getElementById("bizRefresh").addEventListener("click",refresh);
-  const restartButton=document.getElementById("resetAllOrders");
+  const restartButton=document.createElement("button");
+  restartButton.id="resetAllOrders";
+  restartButton.type="button";
   restartButton.textContent="RESTART";
   restartButton.setAttribute("aria-label","Restart and reset all orders");
   dash.appendChild(restartButton);
-  document.getElementById("resetAllOrders").addEventListener("click",async()=>{
+  restartButton.addEventListener("click",async()=>{
     if(!db){alert("The orders database is not connected.");return;}
     if(!confirm("RESET ALL ORDERS? This permanently deletes every order and clears the sales totals and inventory counts. Customer reviews will NOT be deleted."))return;
     const typed=prompt('To confirm, type RESET. This cannot be undone.');
