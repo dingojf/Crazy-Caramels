@@ -36,7 +36,7 @@ window.addEventListener("DOMContentLoaded",()=>{
  const el=document.getElementById("connection");
  if(el)el.textContent="Page loaded · starting scripts…";
 });
-window.addEventListener("error",event=>{const el=document.getElementById("connection");if(el)el.textContent="Page error: "+(event.message||"JavaScript error")});
+window.addEventListener("error",event=>{const el=document.getElementById("connection");if(el)el.textContent="Page error at line "+(event.lineno||"?")+": "+(event.message||"JavaScript error")});
 window.addEventListener("unhandledrejection",event=>{const el=document.getElementById("connection");if(el)el.textContent="Connection error: "+(event.reason?.message||String(event.reason||"Unknown error"))});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2'"></script>
