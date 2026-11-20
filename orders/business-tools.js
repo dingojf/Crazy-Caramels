@@ -21,7 +21,8 @@
     .biz-warning{color:#a12620;font-weight:800;margin:10px 0}
     .biz-tools{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
     .biz-tools button{border:0;border-radius:9px;padding:10px 14px;background:#8b6547;color:white;font-weight:800;cursor:pointer}
-    #resetAllOrders{display:block;width:100%;margin:22px 0 8px;padding:20px;background:#b42318;color:#fff;border:0;border-radius:12px;font-size:25px;font-weight:900;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 0 #78150f}\n    #resetAllOrders:active{transform:translateY(2px);box-shadow:0 2px 0 #78150f}\n    #resetAllOrders:disabled{opacity:.65;cursor:wait}\n    @media(max-width:700px){.biz-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.biz-stock{grid-template-columns:1fr}}
+    #resetAllOrders{position:fixed;left:20px;right:20px;bottom:16px;z-index:99999;display:block;width:calc(100% - 40px);margin:0;padding:20px;background:#b42318;color:#fff;border:0;border-radius:12px;font-size:25px;font-weight:900;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 0 #78150f}\n    #resetAllOrders:active{transform:translateY(2px);box-shadow:0 2px 0 #78150f}\n    #resetAllOrders:disabled{opacity:.65;cursor:wait}\n    #dashboard{padding-bottom:100px}
+    @media(max-width:700px){#resetAllOrders{left:10px;right:10px;bottom:10px;width:calc(100% - 20px)}.biz-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.biz-stock{grid-template-columns:1fr}}
   `;
   document.head.appendChild(style);
   const dash=document.getElementById("dashboard");
@@ -120,7 +121,7 @@
   restartButton.type="button";
   restartButton.textContent="RESTART";
   restartButton.setAttribute("aria-label","Restart and reset all orders");
-  dash.appendChild(restartButton);
+  document.body.appendChild(restartButton);
   restartButton.addEventListener("click",async()=>{
     if(!db){alert("The orders database is not connected.");return;}
     if(!confirm("RESET ALL ORDERS? This permanently deletes every order and clears the sales totals and inventory counts. Customer reviews will NOT be deleted."))return;
