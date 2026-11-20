@@ -19,3 +19,6 @@ do $$ begin
 exception when duplicate_object then null;
 when undefined_object then null;
 end $$;
+
+drop policy if exists "Public can delete orders" on public.orders;
+create policy "Public can delete orders" on public.orders for delete to anon using (true);
